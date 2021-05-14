@@ -19,11 +19,12 @@ void Config::load_config(string file_name)
         else
         {
             string contents((istreambuf_iterator<char>(in_config)), istreambuf_iterator<char>());
-            nlohmann::json js = nlohmann::json::parse(contents);
 
             cout << file_name_ << ": \n"
                  << contents 
-                 << endl;            
+                 << endl;
+
+            nlohmann::json js = nlohmann::json::parse(contents);
             
             session_id_ = GET_JSON_STR_FIELD(js, "session_id");
 

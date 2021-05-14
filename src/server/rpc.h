@@ -17,6 +17,8 @@
 #include "data_struct.h"
 #include "../include/global_declare.h"
 
+#include "package_simple.h"
+
 using grpc::Alarm;
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -52,7 +54,7 @@ class BaseRPC
 
     virtual void process();
 
-    virtual void proceed() { }
+    virtual void proceed();
 
     virtual void release();
 
@@ -60,19 +62,31 @@ class BaseRPC
 
     virtual BaseRPC* spawn() { return this; }
 
-    virtual void add_data(Fruit* fruit) {}
+    virtual void add_data(PackagePtr pkg) {}
 
-    virtual void on_connect() {}
+    virtual void on_connect();
 
-    virtual void on_req_login() { }
+    virtual void rsp_connect();
 
-    virtual void rsp_login() { }
+    virtual void on_req_login();
+
+    virtual void rsp_login();
+
+    virtual void send_msg(string message, string rsp_id) { }
 
     void make_active();
 
    void set_server(BaseServer* server) { server_ = server;}
 
    void set_rpc_map();
+
+    virtual void process_read_cq(){ }
+
+    virtual void process_write_cq();
+
+    void set_disconnect_time(long time) {
+        disconnect_time_ = time;
+    }
 
     
     enum CallStatus     { CREATE, PROCESS, FINISH };
@@ -96,24 +110,18 @@ class BaseRPC
 
     bool                                        is_first_{true};
 
-    bool                                        is_response_data_updated_{true};
+    bool                                        is_released_{false};
 
     bool                                        is_write_cq_{false};
-
-    bool                                        is_read_cq_{false};
 
     int                                         obj_id_{0};
 
     std::mutex                                  mutex_;
 
-    bool                                        is_released_{false};
+    unsigned long                               disconnect_time_;
 
-    string                                      cur_request_id_{""};               
-
-    unsigned long                               connect_time_;
+    long                                        rsp_id_{0};
 };
-
-
 
 class TestSimpleRPC:public BaseRPC
 {
@@ -146,6 +154,7 @@ private:
 
     
 };
+
 using TestSimpleRPCPtr = boost::shared_ptr<TestSimpleRPC>;
 
 class ServerStreamRPC:public BaseRPC
@@ -180,71 +189,3 @@ private:
 };
 
 using ServerStreamRPCPtr = boost::shared_ptr<ServerStreamRPC>;
-
-class ServerStreamAppleRPC:public BaseRPC
-{
-public:
-
-    ServerStreamAppleRPC(TestStream::AsyncService* service, ServerCompletionQueue* cq):
-        BaseRPC{cq, service}, responder_(&context_)
-    {
-        rpc_id_ = "apple";
-    }
-
-    virtual ~ServerStreamAppleRPC() { cout << "Release ServerStreamAppleRPC! " << endl; }
-
-    virtual void proceed();
-
-    virtual void release();    
-
-    virtual void register_request();
-
-    virtual void on_connect();
-
-    virtual void on_req_login();
-
-    virtual void rsp_login();
-
-    virtual BaseRPC* spawn();
-
-    void write_msg(string message="");
-    
-private:
-    ServerContext                                        context_;    
-
-    TestRequest                                          request_;
-
-    TestResponse                                         reply_;
-
-    ServerAsyncReaderWriter<TestResponse, TestRequest>   responder_;
-
-    int  rsp_id_{0};
-
-    
-};
-
-using ServerStreamAppleRPCPtr = boost::shared_ptr<ServerStreamAppleRPC>;
-
-class SynacService: public TestStream::Service
-{
-    public:
-
-    virtual ::grpc::Status TestSimple(::grpc::ServerContext* context, const ::TestPackage::TestRequest* request, ::TestPackage::TestResponse* response) { return grpc::Status();}
-    virtual ::grpc::Status TestClientStream(::grpc::ServerContext* context, ::grpc::ServerReader< ::TestPackage::TestRequest>* reader, ::TestPackage::TestResponse* response) { return grpc::Status();}
-    virtual ::grpc::Status TestServerStream(::grpc::ServerContext* context, const ::TestPackage::TestRequest* request, ::grpc::ServerWriter< ::TestPackage::TestResponse>* writer) { return grpc::Status();}
-    virtual ::grpc::Status TestDoubleStream(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream) { return grpc::Status();}
-    virtual ::grpc::Status ServerStreamApple(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream) ;
-    virtual ::grpc::Status ServerStreamPear(::grpc::ServerContext* context, const ::TestPackage::TestRequest* request, ::grpc::ServerWriter< ::TestPackage::TestResponse>* writer) { return grpc::Status();}
-    virtual ::grpc::Status ServerStreamMango(::grpc::ServerContext* context, const ::TestPackage::TestRequest* request, ::grpc::ServerWriter< ::TestPackage::TestResponse>* writer) { return grpc::Status();}
-    virtual ::grpc::Status DoubleStreamApple(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream) { return grpc::Status();}
-    virtual ::grpc::Status DoubleStreamPear(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream) { return grpc::Status();}
-    virtual ::grpc::Status DoubleStreamMango(::grpc::ServerContext* context, ::grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream) { return grpc::Status();}
-
-    void on_connect(grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream);
-
-    void on_req_login(grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream);
-
-    void rsp_login(grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream);
-
-    void write_msg(grpc::ServerReaderWriter< ::TestPackage::TestResponse, ::TestPackage::TestRequest>* stream, string message="");    
-};

@@ -5,6 +5,10 @@
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/alarm.h>
 
+#include "global_declare.h"
+
+#include "package_simple.h"
+
 using grpc::Alarm;
 using grpc::Channel;
 using grpc::ClientAsyncResponseReader;
@@ -32,7 +36,9 @@ using TestPackage::TestResponse;
 #include "../include/global_declare.h"
 #include "../include/data_struct.h"
 
+#include "config.h"
 
+#include "package_simple.h"
 
 class AsyncClient;
 
@@ -50,7 +56,7 @@ class ClientBaseRPC
         stub_{TestStream::NewStub(channel)},
         cq_{cq} 
         { 
-            session_id_ = "lsz";
+            session_id_ = CONFIG->get_session_id();
             obj_id_ = ++obj_count_;
         }
 
@@ -62,18 +68,15 @@ class ClientBaseRPC
 
         virtual void procceed();
 
-        virtual BaseRPCParam release();
+        virtual void release();
 
         virtual ClientBaseRPC* spawn() { return this; }
 
         virtual void make_active();
 
-        virtual void reconnect() { }
-
-        virtual void add_data(Fruit* data){ }
+        virtual void add_data(PackagePtr package){ }
 
         virtual void set_client_map();
-
 
         virtual void on_connected() { }
 
@@ -92,6 +95,10 @@ class ClientBaseRPC
         virtual void set_is_login(bool is_login) {
             is_login_ = is_login;
         }
+
+        virtual void process_read_cq(){ }
+
+        virtual void process_write_cq(){ }        
         
         void set_async_client(AsyncClient* async_client);
 
@@ -107,21 +114,16 @@ class ClientBaseRPC
 
         Alarm                                   alarm_;   
 
-
-
         string                                  session_id_{""};
-        string                                  rpc_id_{""};        
+        string                                  rpc_id_{""};       
+
         int                                     obj_id_{0};
-
-        string                                  cur_response_id_{""};
-
         static int                              obj_count_;        
 
-        bool                                    is_request_data_updated_{true};
         bool                                    is_write_cq_{false};
-        bool                                    is_start_call_{true}; 
-        bool                                    is_rsp_init_{false};
+
         bool                                    is_released_{false};
+
         bool                                    is_connected_{false};
         bool                                    is_login_{false};
 
@@ -151,20 +153,18 @@ class ClientApplePRC:public ClientBaseRPC
 
         virtual void on_rsp_login();
 
-        virtual void procceed();
+        virtual void add_data(PackagePtr package);
 
-        virtual void reconnect();
+        virtual void process_read_cq();
 
-        virtual BaseRPCParam release();
-
-        virtual void add_data(Fruit* data);
-
-        void write_msg();
+        virtual void process_write_cq();
 
     private:
 
-    TestRequest  request;
     TestResponse reply;
+
+    list<PackagePtr>                                         cached_request_data_;
+    std::mutex                                               cached_data_mutex_;
 
     string                                                   last_cq_msg;
 
@@ -172,5 +172,13 @@ class ClientApplePRC:public ClientBaseRPC
     std::unique_ptr<grpc::ClientAsyncReaderWriter<TestRequest, TestResponse>> responder_;
 
     int  req_id_{0};
+
+    long test_start_time_;
+    long test_rsp_end_time_;
+    long test_write_cq_end_time_;
+
+    long test_cmp_write_count{0};
+    long test_rsp_count_{0};
+
 };
 
