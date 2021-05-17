@@ -7,6 +7,8 @@
 #include "server.h"
 #include "config.h"
 
+#include "log.h"
+
 
 void ServerStreamAppleRPC::register_request()
 {
@@ -37,15 +39,17 @@ void ServerStreamAppleRPC::send_msg(string message, string rsp_id)
         
         responder_.Write(reply_, this);
 
-        cout << "[SERVER]: "
+        stringstream s_obj;
+
+        s_obj << "[SERVER]: "
              << "session_id_=" << session_id_ 
              << ", rpc=" << rpc_id_
              << ", rsp_id=" << rsp_id 
              << ", msg=" << message
              << ", time=" << time 
-             << "\n"
-             << endl;
+             << "\n";
 
+        LOG_INFO(s_obj.str());
         // responder_.Finish(status, this);
 
         is_write_cq_ = true;
@@ -81,7 +85,7 @@ void ServerStreamAppleRPC::process_read_cq()
         // 初次连接;
         if (request_.session_id().length() == 0)
         {
-            cout << "Client Connect!" << endl;
+            // cout << "Client Connect!" << endl;
 
             on_connect();
             
@@ -107,12 +111,15 @@ void ServerStreamAppleRPC::process_read_cq()
             ++request_count_;
             if (request_count_ % 100 == 0)
             {
-                cout << "[CLIENT]: session_id_=" << request_.session_id() 
+                stringstream s_obj;
+
+                s_obj << "[CLIENT]: session_id_=" << request_.session_id() 
                     << ", rpc=" << request_.rpc_id()
                     << ", req_id=" << request_.request_id()
                     << ", req_count=" << request_count_
                     << ", time=" << request_.time() 
-                    << endl;
+                    << "\n";
+                LOG_INFO(s_obj.str());
             }
 
 
@@ -131,10 +138,13 @@ void ServerStreamAppleRPC::process_read_cq()
 
                 long cost_micros = (test_time[session_id].test_end_time_ - test_time[session_id].test_start_time_) /1000;
 
-                cout << "\n[R]Get " << rpc_id_ << " " << session_id << " " << request_count_ << " request cost " 
+                stringstream s_obj;
+
+                s_obj << "[R]Get " << rpc_id_ << " " << session_id << " " << request_count_ << " request cost " 
                     << cost_micros << " micros" 
                     << " ave: " << cost_micros / request_count_ << " micros"
-                    << endl;
+                    << "\n";
+                LOG_INFO(s_obj.str());
             }
 
             // write_msg("", request_.request_id());
@@ -237,14 +247,17 @@ void DoubleStreamAppleRPC::send_msg(string message, string rsp_id)
         
         responder_.Write(reply_, this);
 
-        cout << "[SERVER]: "
+        stringstream s_obj;
+
+        s_obj << "[SERVER]: "
              << "session_id_=" << session_id_ 
              << ", rpc=" << rpc_id_
              << ", rsp_id=" << rsp_id 
              << ", msg=" << message
              << ", time=" << time 
-             << "\n"
-             << endl;
+             << "\n";
+        
+        LOG_INFO(s_obj.str());
 
         // responder_.Finish(status, this);
 
@@ -281,7 +294,7 @@ void DoubleStreamAppleRPC::process_read_cq()
         // 初次连接;
         if (request_.session_id().length() == 0)
         {
-            cout << "Client Connect!" << endl;
+            // cout << "Client Connect!" << endl;
 
             on_connect();
             
@@ -307,12 +320,16 @@ void DoubleStreamAppleRPC::process_read_cq()
             ++request_count_;
             if (request_count_ % 100 == 0)
             {
-                cout << "[CLIENT]: session_id_=" << request_.session_id() 
+                stringstream s_obj;
+
+                s_obj << "[CLIENT]: session_id_=" << request_.session_id() 
                     << ", rpc=" << request_.rpc_id()
                     << ", req_id=" << request_.request_id()
                     << ", req_count=" << request_count_
                     << ", time=" << request_.time() 
-                    << endl;
+                    << "\n";
+
+                LOG_INFO(s_obj.str());
             }
 
 
@@ -331,10 +348,14 @@ void DoubleStreamAppleRPC::process_read_cq()
 
                 long cost_micros = (test_time[session_id].test_end_time_ - test_time[session_id].test_start_time_) /1000;
 
-                cout << "\n[R]Get " << rpc_id_ << " " << session_id << " " << request_count_ << " request cost " 
+                stringstream s_obj;
+
+                s_obj << "[R]Get " << rpc_id_ << " " << session_id << " " << request_count_ << " request cost " 
                     << cost_micros << " micros" 
                     << " ave: " << cost_micros / request_count_ << " micros"
-                    << endl;
+                    << "\n";
+
+                LOG_INFO(s_obj.str());
             }
 
             // write_msg("", request_.request_id());
