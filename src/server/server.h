@@ -65,18 +65,18 @@ protected:
     string                                  address_;
 
     std::unique_ptr<ServerCompletionQueue>  cq_;
+
     std::unique_ptr<Server>                 server_;
 
     ServerBuilder                           builder_;
+    
     TestStream::AsyncService                service_;
 
     boost::shared_ptr<std::thread>          cq_thread_{nullptr};
 
-    TestSimpleRPC*                          simple_rpc;      
-
-    ServerStreamRPC*                        server_stream_rpc;   
-
     ServerStreamAppleRPC*                   server_stream_apple_;
+
+    DoubleStreamAppleRPC*                   double_stream_apple_;
 
     TradeEngine*                            trade_engine_;
 

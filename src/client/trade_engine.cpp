@@ -41,14 +41,16 @@ void TradeEngine::init_client()
 {
     try
     {
-        async_client_ = boost::make_shared<AsyncClient>(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()));
+        async_client_ = boost::make_shared<AsyncClient>(grpc::CreateChannel("localhost:50051", 
+                                                                            grpc::InsecureChannelCredentials()),
+                                                        CONFIG->get_session_id());
 
         async_client_->start();
 
         /* code */
     }
     catch(const std::exception& e)
-    {
+    {       
         std::cerr << e.what() << '\n';
     }
     
@@ -71,9 +73,13 @@ void TradeEngine::test_thread_fun()
 
             pkg->SetRequestID(i+1);
             pkg->SetSessionID(CONFIG->get_session_id());
-            pkg->SetRpcID("apple");
+            pkg->SetRpcID("ServerStreamApple");
 
-            async_client_->add_data(pkg);           
+            async_client_->add_data(pkg);     
+
+            pkg->SetRpcID("DoubleStreamApple");
+
+            async_client_->add_data(pkg);
        }
     }
     catch(const std::exception& e)
