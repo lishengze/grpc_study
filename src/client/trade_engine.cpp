@@ -26,7 +26,32 @@ void TradeEngine::start()
 {
     try
     {
-        init_client();
+        if (is_async_)
+        {
+            init_async_client();
+        }
+        else
+        {
+            init_sync_client();
+        }
+
+        
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }    
+}
+
+void TradeEngine::init_async_client()
+{
+    try
+    {
+        async_client_ = boost::make_shared<AsyncClient>(grpc::CreateChannel("localhost:50051", 
+                                                                            grpc::InsecureChannelCredentials()),
+                                                        CONFIG->get_session_id());
+
+        async_client_->start();
 
         test_thread_ = boost::make_shared<std::thread>(&TradeEngine::test_thread_fun, this);
     }
@@ -37,20 +62,18 @@ void TradeEngine::start()
     
 }
 
-void TradeEngine::init_client()
+void TradeEngine::init_sync_client()
 {
     try
     {
-        async_client_ = boost::make_shared<AsyncClient>(grpc::CreateChannel("localhost:50051", 
+        sync_client_ = boost::make_shared<SyncClient>(grpc::CreateChannel("localhost:50051", 
                                                                             grpc::InsecureChannelCredentials()),
                                                         CONFIG->get_session_id());
 
-        async_client_->start();
-
-        /* code */
+        sync_client_->start();      
     }
     catch(const std::exception& e)
-    {       
+    {
         std::cerr << e.what() << '\n';
     }
     
@@ -75,7 +98,7 @@ void TradeEngine::test_thread_fun()
             pkg->SetSessionID(CONFIG->get_session_id());
             pkg->SetRpcID("ServerStreamApple");
 
-            async_client_->add_data(pkg);     
+            async_client_->add_data(pkg);
 
             pkg->SetRpcID("DoubleStreamApple");
 
@@ -86,5 +109,4 @@ void TradeEngine::test_thread_fun()
     {
         std::cerr << e.what() << '\n';
     }
-    
 }
